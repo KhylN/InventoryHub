@@ -1,0 +1,65 @@
+@page "/fetchproducts"
+@inject ClientApp.Services.ApiClient Api
+
+<h3>Product List</h3>
+
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger">@error</div>
+}
+else if (isLoading)
+{
+    <p>Loading…</p>
+}
+else if (products is null || products.Length == 0)
+{
+    <p>No products found.</p>
+}
+else
+{
+    <ul>
+        @foreach (var product in products)
+        {
+            <li @key="product.Id">
+                <strong>@product.Name</strong>
+                — $@product.Price
+                — Stock: @product.Stock
+                — <em>@product.Category?.Name</em>
+            </li>
+        }
+    </ul>
+}
+
+@code
+{
+    private ClientApp.Services.Product[]? products;
+    private string? error;
+    private bool isLoading = true;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cts = new CancellationTokenSource();
+        try
+        {
+            // Activity 1: generate integration code
+            // Activity 2: refined with error handling + EnsureSuccessStatusCode
+            products = await Api.GetProductsAsync(_cts.Token);
+        }
+        catch (TaskCanceledException) { /* ignore on navigation */ }
+        catch (Exception ex)
+        {
+            error = $"Failed to load products: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}

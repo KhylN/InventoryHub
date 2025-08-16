@@ -1,41 +1,64 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// CORS: allow the WASM client during development
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(p => p
+        .AllowAnyOrigin()
+        .AllowAnyMethod()
+        .AllowAnyHeader());
+});
+
+// Memory cache for simple performance win
+builder.Services.AddMemoryCache();
+
+// Optional: Swagger for quick inspection
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseCors(); // enable the default CORS policy
 
-var summaries = new[]
+// --- keep all top-level statements BEFORE any type declarations ---
+
+// Seed data (local function is a top-level statement, so it must be before types)
+static ProductDto[] SeedProducts() => new[]
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+    new ProductDto(1, "Laptop", 1200.50, 25, new CategoryDto(101, "Electronics")),
+    new ProductDto(2, "Headphones", 50.00, 100, new CategoryDto(102, "Accessories")),
+    new ProductDto(3, "Mouse", 19.99, 250, new CategoryDto(102, "Accessories"))
 };
 
-app.MapGet("/weatherforecast", () =>
+// Activity 1: original endpoint
+app.MapGet("/api/products", () => SeedProducts());
+
+// Activity 2: updated endpoint (route change to /api/productlist)
+app.MapGet("/api/productlist", ([FromServices] IMemoryCache cache) =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    // Simple cache to avoid recomputing/allocating on every request
+    // (also a nice hook to later fetch from DB and cache for 30s)
+    const string key = "productlist";
+    if (!cache.TryGetValue(key, out ProductDto[]? products))
+    {
+        products = SeedProducts();
+        cache.Set(key, products, TimeSpan.FromMinutes(1));
+    }
+    return Results.Ok(products);
+});
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+// --- after this point, ONLY type/namespace declarations ---
+
+public record CategoryDto(int Id, string Name);
+public record ProductDto(int Id, string Name, double Price, int Stock, CategoryDto Category);
