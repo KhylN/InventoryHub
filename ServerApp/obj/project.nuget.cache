@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "5Wxvzjbuwl4=",
+  "success": true,
+  "projectFilePath": "/Users/khylnad/Documents/GitHub/ONLINE COURSES/MICROSOFT/MicrosoftCertificate/Full Stack Integration/FullStackApp/ServerApp/ServerApp.csproj",
+  "expectedPackageFiles": [
+    "/Users/khylnad/.nuget/packages/microsoft.aspnetcore.openapi/9.0.5/microsoft.aspnetcore.openapi.9.0.5.nupkg.sha512",
+    "/Users/khylnad/.nuget/packages/microsoft.openapi/1.6.17/microsoft.openapi.1.6.17.nupkg.sha512"
+  ],
+  "logs": []
+}
